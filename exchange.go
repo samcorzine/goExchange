@@ -26,105 +26,178 @@ type orderRequest struct {
 	ContractType string  `json:"contracttype"`
 }
 
-type BidBook struct {
-	orders []Order
+type BidsAndAsks struct {
+	Bids  []Order
+	Asks  []Order
+	Price float64
 	sync.Mutex
-}
-type AskBook struct {
-	orders []Order
-	sync.Mutex
-}
-type OrderBook struct {
-	Bids BidBook
-	Asks AskBook
 }
 
-func (book *BidBook) addOrder(ord Order) {
-	if len(book.orders) == 0 {
-		book.orders = []Order{ord}
-		return
-	}
-	for i := 0; i < len(book.orders); i = i + 1 {
-		currentEntry := book.orders[i]
-		if ord.Price > currentEntry.Price {
-			if i == 0 {
-				book.orders = append([]Order{ord}, book.orders...)
-			} else {
-				var tmp []Order
-				copy(tmp, book.orders[i:])
-				book.orders = append(book.orders[:i-1], ord)
-				book.orders = append(book.orders, tmp...)
-			}
-			return
-		} else if i == len(book.orders)-1 {
-			book.orders = append(book.orders, ord)
+type OrderBook struct {
+	// TODO: rewrite everything as a slice of BidsAndAsks with the price inside those structs and the book sorted with that as a key
+	pricePoints []BidsAndAsks
+	sync.Mutex
+}
+
+func (bidsasks *BidsAndAsks) addOrder(ord Order) {
+	if ord.ContractType == "Bid" {
+		if len(bidsasks.Bids) == 0 {
+			bidsasks.Bids = []Order{ord}
 			return
 		}
-	}
-}
-func (book *AskBook) addOrder(ord Order) {
-	if len(book.orders) == 0 {
-		book.orders = []Order{ord}
-		return
-	}
-	for i := 0; i < len(book.orders); i = i + 1 {
-		currentEntry := book.orders[i]
-		if ord.Price < currentEntry.Price {
-			if i == 0 {
-				book.orders = append([]Order{ord}, book.orders...)
-			} else {
-				var tmp []Order
-				copy(tmp, book.orders[i:])
-				book.orders = append(book.orders[:i-1], ord)
-				book.orders = append(book.orders, tmp...)
+		for i := 0; i < len(bidsasks.Bids); i = i + 1 {
+			currentEntry := bidsasks.Bids[i]
+			if ord.Price > currentEntry.Price {
+				if i == 0 {
+					bidsasks.Bids = append([]Order{ord}, bidsasks.Bids...)
+				} else {
+					var tmp []Order
+					copy(tmp, bidsasks.Bids[i:])
+					bidsasks.Bids = append(bidsasks.Bids[:i-1], ord)
+					bidsasks.Bids = append(bidsasks.Bids, tmp...)
+				}
+				return
+			} else if i == len(bidsasks.Bids)-1 {
+				bidsasks.Bids = append(bidsasks.Bids, ord)
+				return
 			}
+		}
+	}
+	if ord.ContractType == "Ask" {
+		if len(bidsasks.Asks) == 0 {
+			bidsasks.Asks = []Order{ord}
 			return
-		} else if i == len(book.orders)-1 {
-			book.orders = append(book.orders, ord)
-			return
+		}
+		for i := 0; i < len(bidsasks.Asks); i = i + 1 {
+			currentEntry := bidsasks.Asks[i]
+			if ord.Price < currentEntry.Price {
+				if i == 0 {
+					bidsasks.Asks = append([]Order{ord}, bidsasks.Asks...)
+				} else {
+					var tmp []Order
+					copy(tmp, bidsasks.Asks[i:])
+					bidsasks.Asks = append(bidsasks.Asks[:i-1], ord)
+					bidsasks.Asks = append(bidsasks.Asks, tmp...)
+				}
+				return
+			} else if i == len(bidsasks.Asks)-1 {
+				bidsasks.Asks = append(bidsasks.Asks, ord)
+				return
+			}
 		}
 	}
 }
 
 func (book *OrderBook) addOrder(ord Order) {
-	if ord.ContractType == "Ask" {
-		book.Asks.Lock()
-		defer book.Asks.Unlock()
-		book.Asks.addOrder(ord)
-	} else if ord.ContractType == "Bid" {
-		book.Bids.Lock()
-		defer book.Bids.Unlock()
-		book.Bids.addOrder(ord)
-	} else {
-		log.Fatal("Order is of invalid type, cannot add to OrderBook")
+	if len(book.pricePoints) == 0 {
+		var newPricePoint BidsAndAsks
+		newPricePoint.addOrder(ord)
+		book.pricePoints = []BidsAndAsks{newPricePoint}
+	}
+	for i, x := range book.pricePoints {
+		if x.Price == ord.Price {
+			x.addOrder(ord)
+			return
+		}
+
+		if x.Price < ord.Price {
+			var newPricePoint BidsAndAsks
+			newPricePoint.addOrder(ord)
+			if i == 0 {
+				tmp := []BidsAndAsks{newPricePoint}
+				for _, x := range book.pricePoints {
+					tmp = append(tmp, x)
+				}
+				book.pricePoints = tmp
+				return
+			}
+			if len(book.pricePoints) > 1 {
+				var tmp []BidsAndAsks
+				copy(tmp, book.pricePoints[i:])
+				book.pricePoints = append(book.pricePoints[:i-1], newPricePoint)
+				book.pricePoints = append(book.pricePoints, tmp...)
+			} else {
+				newStart := []BidsAndAsks{newPricePoint}
+				newStart = append(newStart, book.pricePoints[0])
+				book.pricePoints = newStart
+			}
+		}
 	}
 }
 
 func (book *OrderBook) clear() bool {
-	book.Asks.Lock()
-	defer book.Asks.Unlock()
-	book.Bids.Lock()
-	defer book.Bids.Unlock()
-	if len(book.Bids.orders) != 0 && len(book.Bids.orders) != 0 {
-		highestBid := book.Bids.orders[0]
-		lowestAsk := book.Asks.orders[0]
-		if highestBid.Price > lowestAsk.Price {
-			book.Bids.orders = book.Bids.orders[1:]
-			book.Asks.orders = book.Asks.orders[1:]
-			return true
+	// Things are timing out, probably something to do with zero values for the empty arrays
+	highestBid := -1.0
+	lowestAsk := -2.0
+	clearedSomething := false
+	for highestBid > lowestAsk {
+		for _, x := range book.pricePoints {
+			if len(x.Bids) > 0 && x.Price > highestBid {
+				highestBid = x.Price
+			}
+			if len(x.Asks) > 0 && x.Price < lowestAsk {
+				lowestAsk = x.Price
+			}
+		}
+		if highestBid == -1.0 && lowestAsk == -2.0 {
+			return clearedSomething
+		}
+		if highestBid > lowestAsk {
+			for _, x := range book.pricePoints {
+				if x.Price == highestBid {
+
+					if len(x.Bids) > 1 {
+						x.Bids = x.Bids[:1]
+					} else {
+						x.Bids = []Order{}
+					}
+				}
+			}
+			for _, x := range book.pricePoints {
+				if x.Price == lowestAsk {
+					if len(x.Asks) > 1 {
+						x.Asks = x.Asks[:1]
+					} else {
+						x.Bids = []Order{}
+					}
+				}
+			}
 		}
 	}
-	return false
+	return clearedSomething
+
 }
 
 func (book OrderBook) numBids() int {
-	return len(book.Bids.orders)
+	var numBids int
+	for _, v := range book.pricePoints {
+		for range v.Bids {
+			numBids += 1
+		}
+	}
+	return numBids
 }
 func (book OrderBook) numAsks() int {
-	return len(book.Asks.orders)
+	var numAsks int
+	for _, v := range book.pricePoints {
+		for range v.Asks {
+			numAsks += 1
+		}
+	}
+	return numAsks
 }
 func (book OrderBook) numOrders() int {
-	return book.numAsks() + book.numBids()
+	var numOrders int
+	for _, v := range book.pricePoints {
+		for range v.Asks {
+			numOrders += 1
+		}
+		for range v.Bids {
+			numOrders += 1
+		}
+
+	}
+	return numOrders
 }
 
 func launchHTTPAPI(book *OrderBook) {
@@ -146,9 +219,13 @@ func launchHTTPAPI(book *OrderBook) {
 	}()
 }
 
+func initOrderBook() *OrderBook {
+	return &OrderBook{pricePoints: make([]BidsAndAsks, 0)}
+}
+
 func main() {
-	testOrderBook := OrderBook{Bids: BidBook{orders: []Order{}}, Asks: AskBook{orders: []Order{}}}
-	launchHTTPAPI(&testOrderBook)
+	testOrderBook := initOrderBook()
+	launchHTTPAPI(testOrderBook)
 	for {
 		time.Sleep(time.Duration(1) * time.Second)
 		fmt.Println("Before Clear:")
