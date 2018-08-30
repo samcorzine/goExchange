@@ -170,50 +170,6 @@ func (book *OrderBook) clear() bool {
 	return didAClear
 }
 
-// func (book *OrderBook) clear() bool {
-// 	// Things are timing out, highestBid will be higher than highest ask if theres no Asks
-// 	// Also this code will remove a bid without removing an Ask need to put that logic
-// 	// basically whole thing is fucked
-// 	highestBid := -1.0
-// 	lowestAsk := -2.0
-// 	clearedSomething := false
-// 	for highestBid > lowestAsk {
-// 		for _, x := range book.pricePoints {
-// 			if len(x.Bids) > 0 && x.Price > highestBid {
-// 				highestBid = x.Price
-// 			}
-// 			if len(x.Asks) > 0 && x.Price < lowestAsk {
-// 				lowestAsk = x.Price
-// 			}
-// 		}
-// 		if highestBid == -1.0 && lowestAsk == -2.0 {
-// 			return clearedSomething
-// 		}
-// 		if highestBid > lowestAsk {
-// 			for _, x := range book.pricePoints {
-// 				if x.Price == highestBid {
-//
-// 					if len(x.Bids) > 1 {
-// 						x.Bids = x.Bids[:1]
-// 					} else {
-// 						x.Bids = []Order{}
-// 					}
-// 				}
-// 			}
-// 			for _, x := range book.pricePoints {
-// 				if x.Price == lowestAsk {
-// 					if len(x.Asks) > 1 {
-// 						x.Asks = x.Asks[:1]
-// 					} else {
-// 						x.Bids = []Order{}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return clearedSomething
-// }
-
 func (book OrderBook) numBids() int {
 	var numBids int
 	for _, v := range book.pricePoints {
