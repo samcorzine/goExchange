@@ -92,18 +92,21 @@ func (book *OrderBook) addOrder(ord Order) {
 	if len(book.pricePoints) == 0 {
 		var newPricePoint BidsAndAsks
 		newPricePoint.addOrder(ord)
+		newPricePoint.Price = ord.Price
+
 		book.pricePoints = []BidsAndAsks{newPricePoint}
 		return
 	}
 	for i, x := range book.pricePoints {
 		if x.Price == ord.Price {
-			x.addOrder(ord)
+			book.pricePoints[i].addOrder(ord)
 			return
 		}
 
-		if x.Price < ord.Price {
+		if ord.Price < x.Price {
 			var newPricePoint BidsAndAsks
 			newPricePoint.addOrder(ord)
+			newPricePoint.Price = ord.Price
 			if i == 0 {
 				tmp := []BidsAndAsks{newPricePoint}
 				for _, x := range book.pricePoints {
