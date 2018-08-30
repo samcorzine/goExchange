@@ -18,8 +18,9 @@ func TestMoveChecker(t *testing.T) {
 		t.Errorf("bid wasn't added")
 	}
 	testOrderBook.addOrder(Order{UUID: "ssadfasdf", Price: 342, ContractType: "Ask", OrderID: 2})
+	testOrderBook.addOrder(Order{UUID: "ssaddf", Price: 342, ContractType: "Ask", OrderID: 4})
 	testOrderBook.addOrder(Order{UUID: "ssaddf", Price: 34, ContractType: "Ask", OrderID: 4})
-	if testOrderBook.numAsks() != 2 {
+	if testOrderBook.numAsks() != 3 {
 		t.Errorf("ask wasn't added")
 	}
 	if testOrderBook.clear() != true {

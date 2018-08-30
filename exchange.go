@@ -43,47 +43,17 @@ func (bidsasks *BidsAndAsks) addOrder(ord Order) {
 	if ord.ContractType == "Bid" {
 		if len(bidsasks.Bids) == 0 {
 			bidsasks.Bids = []Order{ord}
-			return
-		}
-		for i := 0; i < len(bidsasks.Bids); i = i + 1 {
-			currentEntry := bidsasks.Bids[i]
-			if ord.Price > currentEntry.Price {
-				if i == 0 {
-					bidsasks.Bids = append([]Order{ord}, bidsasks.Bids...)
-				} else {
-					var tmp []Order
-					copy(tmp, bidsasks.Bids[i:])
-					bidsasks.Bids = append(bidsasks.Bids[:i-1], ord)
-					bidsasks.Bids = append(bidsasks.Bids, tmp...)
-				}
-				return
-			} else if i == len(bidsasks.Bids)-1 {
-				bidsasks.Bids = append(bidsasks.Bids, ord)
-				return
-			}
+		} else {
+			bidsasks.Bids = append(bidsasks.Bids, ord)
 		}
 	}
 	if ord.ContractType == "Ask" {
 		if len(bidsasks.Asks) == 0 {
 			bidsasks.Asks = []Order{ord}
 			return
-		}
-		for i := 0; i < len(bidsasks.Asks); i = i + 1 {
-			currentEntry := bidsasks.Asks[i]
-			if ord.Price < currentEntry.Price {
-				if i == 0 {
-					bidsasks.Asks = append([]Order{ord}, bidsasks.Asks...)
-				} else {
-					var tmp []Order
-					copy(tmp, bidsasks.Asks[i:])
-					bidsasks.Asks = append(bidsasks.Asks[:i-1], ord)
-					bidsasks.Asks = append(bidsasks.Asks, tmp...)
-				}
-				return
-			} else if i == len(bidsasks.Asks)-1 {
-				bidsasks.Asks = append(bidsasks.Asks, ord)
-				return
-			}
+		} else {
+			bidsasks.Asks = append(bidsasks.Asks, ord)
+			return
 		}
 	}
 }
