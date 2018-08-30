@@ -17,6 +17,7 @@ func TestMoveChecker(t *testing.T) {
 	if testOrderBook.numAsks() != 1 {
 		t.Errorf("ask wasn't added")
 	}
+	spew.Dump(testOrderBook)
 	if testOrderBook.clear() != true {
 		t.Errorf("clear didn't occur when it should have")
 	}

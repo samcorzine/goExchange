@@ -93,6 +93,7 @@ func (book *OrderBook) addOrder(ord Order) {
 		var newPricePoint BidsAndAsks
 		newPricePoint.addOrder(ord)
 		book.pricePoints = []BidsAndAsks{newPricePoint}
+		return
 	}
 	for i, x := range book.pricePoints {
 		if x.Price == ord.Price {
@@ -126,47 +127,92 @@ func (book *OrderBook) addOrder(ord Order) {
 }
 
 func (book *OrderBook) clear() bool {
-	// Things are timing out, probably something to do with zero values for the empty arrays
-	highestBid := -1.0
-	lowestAsk := -2.0
-	clearedSomething := false
-	for highestBid > lowestAsk {
-		for _, x := range book.pricePoints {
-			if len(x.Bids) > 0 && x.Price > highestBid {
-				highestBid = x.Price
-			}
-			if len(x.Asks) > 0 && x.Price < lowestAsk {
-				lowestAsk = x.Price
-			}
-		}
-		if highestBid == -1.0 && lowestAsk == -2.0 {
-			return clearedSomething
-		}
-		if highestBid > lowestAsk {
-			for _, x := range book.pricePoints {
-				if x.Price == highestBid {
-
-					if len(x.Bids) > 1 {
-						x.Bids = x.Bids[:1]
+	lastSucceeded := true
+	didAClear := false
+	for lastSucceeded == true {
+		foundAsk := false
+		foundBid := false
+		counter := 0
+		bidPlace := -1
+		askPlace := -1
+		for foundAsk == false && counter < len(book.pricePoints) {
+			if len(book.pricePoints[counter].Asks) != 0 {
+				foundAsk = true
+				askPlace = counter
+				for foundBid == false {
+					if len(book.pricePoints[counter].Bids) != 0 {
+						foundBid = true
+						bidPlace = counter
 					} else {
-						x.Bids = []Order{}
+						counter += 1
 					}
 				}
+			} else {
+				counter += 1
 			}
-			for _, x := range book.pricePoints {
-				if x.Price == lowestAsk {
-					if len(x.Asks) > 1 {
-						x.Asks = x.Asks[:1]
-					} else {
-						x.Bids = []Order{}
-					}
-				}
+		}
+		if foundAsk && foundBid {
+			didAClear = true
+			if len(book.pricePoints[bidPlace].Bids) > 1 {
+				book.pricePoints[bidPlace].Bids = book.pricePoints[bidPlace].Bids[:1]
+			} else {
+				book.pricePoints[bidPlace].Bids = []Order{}
 			}
+			if len(book.pricePoints[bidPlace].Asks) > 1 {
+				book.pricePoints[askPlace].Asks = book.pricePoints[askPlace].Asks[:1]
+			} else {
+				book.pricePoints[askPlace].Asks = []Order{}
+			}
+		} else {
+			lastSucceeded = false
 		}
 	}
-	return clearedSomething
-
+	return didAClear
 }
+
+// func (book *OrderBook) clear() bool {
+// 	// Things are timing out, highestBid will be higher than highest ask if theres no Asks
+// 	// Also this code will remove a bid without removing an Ask need to put that logic
+// 	// basically whole thing is fucked
+// 	highestBid := -1.0
+// 	lowestAsk := -2.0
+// 	clearedSomething := false
+// 	for highestBid > lowestAsk {
+// 		for _, x := range book.pricePoints {
+// 			if len(x.Bids) > 0 && x.Price > highestBid {
+// 				highestBid = x.Price
+// 			}
+// 			if len(x.Asks) > 0 && x.Price < lowestAsk {
+// 				lowestAsk = x.Price
+// 			}
+// 		}
+// 		if highestBid == -1.0 && lowestAsk == -2.0 {
+// 			return clearedSomething
+// 		}
+// 		if highestBid > lowestAsk {
+// 			for _, x := range book.pricePoints {
+// 				if x.Price == highestBid {
+//
+// 					if len(x.Bids) > 1 {
+// 						x.Bids = x.Bids[:1]
+// 					} else {
+// 						x.Bids = []Order{}
+// 					}
+// 				}
+// 			}
+// 			for _, x := range book.pricePoints {
+// 				if x.Price == lowestAsk {
+// 					if len(x.Asks) > 1 {
+// 						x.Asks = x.Asks[:1]
+// 					} else {
+// 						x.Bids = []Order{}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return clearedSomething
+// }
 
 func (book OrderBook) numBids() int {
 	var numBids int
