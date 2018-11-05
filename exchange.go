@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 )
 
@@ -189,14 +190,14 @@ func launchHTTPAPI(book *OrderBook) {
 			var order = Order{UUID: orderDetails.UUID, Price: orderDetails.Price, ContractType: orderDetails.ContractType, OrderID: rand.Int()}
 			book.addOrder(order)
 		}).Methods("POST")
-	}()
-	go func() {
 		m.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
 			js, _ := json.Marshal(book)
 			w.Write(js)
 		}).Methods("GET")
 	}()
-	log.Fatal(http.ListenAndServe(":8081", m))
+	go func() {
+		log.Fatal(http.ListenAndServe(":8081", m))
+	}()
 
 }
 
@@ -210,10 +211,10 @@ func main() {
 	for {
 		time.Sleep(time.Duration(1) * time.Second)
 		fmt.Println("Before Clear:")
-		// spew.Dump(testOrderBook)
-		// testOrderBook.clear()
+		spew.Dump(testOrderBook)
+		testOrderBook.clear()
 		fmt.Println("After Clear:")
-		// spew.Dump(testOrderBook)
+		spew.Dump(testOrderBook)
 	}
 
 }
