@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 )
 
@@ -27,9 +26,9 @@ type orderRequest struct {
 }
 
 type BidsAndAsks struct {
-	Bids  []Order
-	Asks  []Order
-	Price float64
+	Bids  []Order `json:"bids"`
+	Asks  []Order `json:"asks"`
+	Price float64 `json:"price"`
 	sync.Mutex
 }
 
@@ -176,8 +175,8 @@ func (book OrderBook) numOrders() int {
 }
 
 func launchHTTPAPI(book *OrderBook) {
+	m := mux.NewRouter()
 	go func() {
-		m := mux.NewRouter()
 		m.HandleFunc("/order", func(w http.ResponseWriter, r *http.Request) {
 			// vars := mux.Vars(r)
 			// newVal, err := strconv.Atoi(vars["newVal"])
@@ -190,8 +189,15 @@ func launchHTTPAPI(book *OrderBook) {
 			var order = Order{UUID: orderDetails.UUID, Price: orderDetails.Price, ContractType: orderDetails.ContractType, OrderID: rand.Int()}
 			book.addOrder(order)
 		}).Methods("POST")
-		log.Fatal(http.ListenAndServe(":8080", m))
 	}()
+	go func() {
+		m.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
+			js, _ := json.Marshal(book)
+			w.Write(js)
+		}).Methods("GET")
+	}()
+	log.Fatal(http.ListenAndServe(":8081", m))
+
 }
 
 func initOrderBook() *OrderBook {
@@ -204,10 +210,10 @@ func main() {
 	for {
 		time.Sleep(time.Duration(1) * time.Second)
 		fmt.Println("Before Clear:")
-		spew.Dump(testOrderBook)
+		// spew.Dump(testOrderBook)
 		// testOrderBook.clear()
 		fmt.Println("After Clear:")
-		spew.Dump(testOrderBook)
+		// spew.Dump(testOrderBook)
 	}
 
 }

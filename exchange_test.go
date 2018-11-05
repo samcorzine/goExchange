@@ -2,8 +2,6 @@ package main
 
 import (
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestMoveChecker(t *testing.T) {
@@ -12,7 +10,7 @@ func TestMoveChecker(t *testing.T) {
 	testOrderBook.addOrder(Order{UUID: "sdfafsD", Price: 23545.0, ContractType: "Bid", OrderID: 3})
 	testOrderBook.addOrder(Order{UUID: "sdfaD", Price: 23545.0, ContractType: "Bid", OrderID: 5})
 	testOrderBook.addOrder(Order{UUID: "sdffdsaD", Price: 2345.0, ContractType: "Bid", OrderID: 7})
-	spew.Dump(testOrderBook)
+	// spew.Dump(testOrderBook)
 
 	if testOrderBook.numBids() != 4 {
 		t.Errorf("bid wasn't added")
