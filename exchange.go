@@ -194,8 +194,6 @@ func launchHTTPAPI(book *OrderBook) {
 			js, _ := json.Marshal(book)
 			w.Write(js)
 		}).Methods("GET")
-	}()
-	go func() {
 		log.Fatal(http.ListenAndServe(":8081", m))
 	}()
 
